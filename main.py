@@ -13,6 +13,63 @@ if not platform.system() == "Windows":
     exit(1)
 
 def main():
+    
+    def prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated):
+        exit=False
+        username=''
+        password=''
+        while not exit: #Asks MySQL admin user
+            print('TizonaServer needs a user and a password to connect to the database')
+            print('Create a new user?')
+            print('[y] --> yes')
+            print('[n] --> no')
+            exit=False
+            if input().strip().lower()=='y':#User creation
+                newUsername,newPassword,userCreated = userCreation(newUsername,newPassword,userCreated)
+            else: 
+                print('\033[33mYou refused to create a new user. When you are asked to set the database username and password ' \
+                'in TizonaServer\'s .env file, make sure that this user has privileges on the database.\033[0m')
+                print
+            #DB creation and set user privileges
+            exit=False
+            while not dbCreated and not exit:
+                dbInput=input('Type database name (at least three characters): ')
+                if len(dbInput)>2: dbName=dbInput
+                dbCreated=createDB(dbName)
+                if not dbCreated: 
+                    print(f"\033[91mCould not create database with name {dbName}\033[0m")
+                    print('[s] --> skip database creation')
+                    print('Press Enter to try again')
+                    if input().strip().lower()=='s': exit=True
+                else:
+                    setDbTables(dbName)
+                    grantPrivileges(newUsername,dbName,newPassword)
+                    exit=True
+        return (dbCreated,dbName,newUsername,newPassword,userCreated)
+
+    def userCreation(newUsername,newPassword,userCreated):
+        confirmPassword='a'
+        while True:
+            print('Type username')
+            newUsername=input()
+            newPassword=getpass('Type password: ')
+            confirmPassword=getpass('Confirm password: ')
+            if newPassword != confirmPassword: #Passwords don't match
+                print("\033[91mPasswords do not match\033[0m")
+            elif len(newUsername)>=2: #Username too short
+               result=createUser(newUsername,newPassword) 
+               if result!='userExists': 
+                   userCreated=True
+                   break #User was created
+               else: print("\033[91mThis user already exists\033[0m") #User already exists
+            else: print("\033[91mUsername is not long enough\033[0m") #Username too short
+             #Something went wrong
+            print('[s] --> skip user setup')
+            print('Press Enter to try again')
+            if input().strip().lower()=='s': return ('','',False)
+            else: continue
+        return (newUsername,newPassword,userCreated)
+    
     #NODE CHECK
     inputVal=''
     restart=False
@@ -37,7 +94,7 @@ def main():
                 installMethod2=True
                 nvmExists=os.system('nvm --version')
                 if nvmExists==0:
-                    print('\033[33mNVM was detected, Do you want to install Node.js through it?\033[0m')
+                    print('\033[33mNVM was detected, Do you want to install Node.js using it?\033[0m')
                     print('[y] --> Download Node.js 22.15.1 and install with NVM')
                     print('[n] --> Download Node.js installer')
                     if input().lower().strip()=='y': installMethod2=False
@@ -46,6 +103,12 @@ def main():
                         downloadResource(nodeDownloadUrl, 'node-v22.15.1-x64.msi')
                     os.system(getResPath('node-v22.15.1-x64.msi'))
                     if nvmExists==0: os.system('nvm off')
+                    printGreen(
+                        'Node.js has been installed. Please restart the TizonaHub installer to make Node.js available.\n'
+                        'If you started the TizonaHub installer using the command prompt, please open a new one.'
+                    )
+
+                    return
                 if not installMethod2:
                     os.system('nvm install 22')
                     os.system('nvm on')
@@ -73,6 +136,7 @@ def main():
                 restart=True
                 print("\033[91mNode version should be greater than 20.17.1 and less than 23.0.0\033[0m")
 
+    #MYSQL CHECK
     mysql=setServiceStartup()
     if not mysql:
         print('\033[91mMySQL service was not detected\033[0m')
@@ -80,6 +144,11 @@ def main():
         print('\033[92mMySQL service was detected\033[0m ')
         exit=False
         adminLogged=False
+        dbCreated=False
+        userCreated=False
+        newUsername=''
+        newPassword=''
+        dbName='tizonaserver'
         while not adminLogged and not exit: #Asks MySQL admin user
             print('Type MySQL admin username')
             username=input()
@@ -90,7 +159,7 @@ def main():
                 print('Do you want to skip MySQL version check?')
                 print('[y] --> yes')
                 print('[n] --> no')
-                if input().strip().lower=='y':
+                if input().strip().lower()=='y':
                     exit=True
         if adminLogged:
             print('\033[92mAdmin user verified successfully\033[0m ')
@@ -98,43 +167,11 @@ def main():
             print('[y] --> yes')
             print('[n] --> no')
             inputVal=input()
-            newUsername=''
-            newPassword=''
-            dbName='tizonaserver'
             dbCreated=False
             userCreated=False
             if inputVal.lower().strip()=='y': #Install & prepare db
-                exit=False
-                username=''
-                password=''
-                while not exit: #Asks MySQL admin user
-                    print('TizonaServer needs a user and a password to connect to the database')
-                    print('Create a new user?')
-                    print('[y] --> yes')
-                    print('[n] --> no')
-                    exit=False
-                    if input().strip().lower()=='y':#User creation
-                        newUsername,newPassword,userCreated = userCreation(newUsername,newPassword,userCreated)
-                    else: 
-                        print('\033[33mYou refused to create a new user. When you are asked to set the database username and password ' \
-                        'in TizonaServer\'s .env file, make sure that this user has privileges on the database.\033[0m')
-                        print()
-
-                    #DB creation and set user privileges
-                    exit=False
-                    while not dbCreated and not exit:
-                        dbInput=input('Type database name (at least three characters): ')
-                        if len(dbInput)>2: dbName=dbInput
-                        dbCreated=createDB(dbName)
-                        if not dbCreated: 
-                            print(f"\033[91mCould not create database with name {dbName}\033[0m")
-                            print('[s] --> skip database creation')
-                            print('Press Enter to try again')
-                            if input().strip().lower()=='s': exit=True
-                        else:
-                            setDbTables(dbName)
-                            grantPrivileges(newUsername,dbName,newPassword)
-
+                dbCreated,dbName,newUsername,newPassword,userCreated = prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated)
+                
         if not dbCreated:
             print('\033[33mYou refused to create a new database\033[0m')
         print()
@@ -167,7 +204,7 @@ def main():
 
         if not dbCreated: dbName=input('Type database name:  ')
         if not newUsername: newUsername=input('Type database username:  ')
-        if not newPassword: newPassword=getpass('Type user password:  ')
+        if not newPassword: newPassword=''
 
         target = os.path.abspath(installationPath+r'\TizonaHub\TizonaServer')  
         targetRoot=os.path.abspath(installationPath+r'\TizonaHub')  
@@ -188,28 +225,6 @@ def main():
           input()
           return
 
-def userCreation(newUsername,newPassword,userCreated):
-    confirmPassword='a'
-    while True:
-        print('Type username')
-        newUsername=input()
-        newPassword=getpass('Type password: ')
-        confirmPassword=getpass('Confirm password: ')
-        if newPassword != confirmPassword: #Passwords don't match
-            print("\033[91mPasswords do not match\033[0m")
-        elif len(newUsername)>=2: #Username too short
-           result=createUser(newUsername,newPassword) 
-           if result!='userExists': 
-               userCreated=True
-               break #User was created
-           else: print("\033[91mThis user already exists\033[0m") #User already exists
-        else: print("\033[91mUsername is not long enough\033[0m") #Username too short
-         #Something went wrong
-        print('[s] --> skip user setup')
-        print('Press Enter to try again')
-        if input().strip().lower()=='s': return ('','',False)
-        else: continue
-    return (newUsername,newPassword,userCreated)
 
 def initApp():
     try:
