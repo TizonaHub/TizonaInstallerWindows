@@ -1,0 +1,261 @@
+import subprocess
+import pymysql
+import ctypes
+import os
+from os.path import abspath
+import sys
+import string
+import requests
+from win32com.client import Dispatch
+import pathlib
+
+
+CREATE_NO_WINDOW = 0x08000000
+adminData={
+     "username":'root',
+     "password":'0000'
+}
+dbEnvData={
+    "username":'',
+    "db":'',
+    'password':''
+}
+def getPartitions():
+    partitions = []
+    bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+    for letter in string.ascii_uppercase:
+        if bitmask & 1:
+            partitions.append(f"{letter}:\\")
+        bitmask >>= 1
+    return partitions
+
+def checkNode(defaultPath=False,newPath=False,nvm=False):
+    path='node'
+    if newPath: path=newPath
+    if defaultPath: path = r'C:\Program Files\nodejs\node.exe'
+    if nvm: path= 'node'
+
+    try:
+        result = subprocess.run(
+            [path, "--version"],
+            capture_output=True,
+            text=True,
+            check=True,
+            creationflags=CREATE_NO_WINDOW
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        return False
+
+
+def getRandomString(specialChars=True,length=78):
+    import random
+    chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=<>?"
+    if not specialChars: chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    string = ""
+
+    for i in range(length):
+        char = chars[random.randint(0,length)]
+        string = string + char
+    return string
+
+def createDB(dbName):
+    myDb = getConnection()
+    if not myDb: return False
+    mycursor = myDb.cursor()
+    try:
+        mycursor.execute(f"CREATE DATABASE {dbName};")
+        return True
+    except Exception as e:
+        None
+        #print('Exception at createDb: ', e)
+    myDb.close()
+    return False
+
+def createUser(user,password):
+    try:
+        mydb = getConnection()
+        mycursor = mydb.cursor()
+        sql = "CREATE USER %s@'localhost' IDENTIFIED BY %s;"
+        mycursor.execute(sql, (user,password))
+        mydb.close()
+        print('user created')
+        return True
+    except Exception as e:
+        try:
+            mydb = getConnection()
+            mycursor = mydb.cursor()
+            sql = "SELECT COUNT(user) FROM mysql.user WHERE user=%s;"
+            mycursor.execute(sql, (user,))
+            result = mycursor.fetchall()
+            mydb.close()
+            return 'userExists' if result[0][0] == 1 else False
+        except Exception as e:
+            print(e)
+            return False
+        
+def setDbTables(db):
+    with open(getResPath('setup.sql'), 'r') as sql:
+        sql = sql.read()
+        myDb = getConnection(db)
+        if not myDb: return False
+        mycursor = myDb.cursor()
+        try:
+            for statement in sql.strip().split(';'):
+                if statement:
+                    mycursor.execute(statement)
+            return True
+        except Exception as e:
+            print('Exception at setDbTables: ', e)
+        myDb.close()
+    return False        
+def checkMYSQLAdmin(user,password):
+    try:
+        mydb = pymysql.connect(
+            host="localhost",
+            user=user,
+            password=password
+        )
+        dbCursor=mydb.cursor()
+        randomString=getRandomString(False,10)
+        dbCursor.execute(f"CREATE DATABASE {randomString};")
+        dbCursor.execute(f"DROP DATABASE {randomString};")
+        mydb.close()
+        adminData["username"]=user
+        adminData["password"]=password
+        return True
+    except Exception as e:
+        return False
+    
+def getMYSQLVersion(user,password):
+    try:
+        mydb = pymysql.connect(
+            host="localhost",
+            user=user,
+            password=password
+        )
+        mycursor = mydb.cursor()
+        sql = "SELECT VERSION()"
+        mycursor.execute(sql)
+        result = mycursor.fetchall()
+        mydb.close()
+        return result
+    except:
+        return False
+    
+def getConnection(db=None):
+    try:
+        config = {
+            'host': "localhost",
+            'user': adminData["username"],
+            'password': adminData["password"]
+        }
+        if db:
+            config['database'] = db
+        return pymysql.connect(**config)
+    except:
+        print('Could not connect to MySQL')
+        return False
+    
+def getServiceInfo(service_name):
+        result = subprocess.run(["sc", "qc", service_name], capture_output=True, text=True,
+            creationflags=CREATE_NO_WINDOW)
+        return result.stdout
+
+def setServiceStartup():
+    try:
+        subprocess.run(
+             ["powershell", "-Command", "Set-Service -Name 'MySQL80' -StartupType Automatic"],
+            check=True,
+            creationflags=CREATE_NO_WINDOW
+        )
+        return True
+    except Exception as e:
+        print('e: ', e)
+        return False
+    
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+    
+def getResPath(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    path=os.path.join(base_path, relative_path)
+    return os.path.abspath(path)
+
+def downloadResource(url,dest):    
+
+    response = requests.get(url, stream=True)
+    with open(getResPath(dest), 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:  
+                f.write(chunk)
+
+def grantPrivileges(user,db,password):
+    myDb = getConnection(db)
+    if not myDb: return False
+    mycursor = myDb.cursor()
+    try:
+        mycursor.execute(f"GRANT ALL PRIVILEGES ON {db}.* TO {user}@'localhost';")
+        dbEnvData['username']=user
+        dbEnvData['db']=db
+        dbEnvData['password']=password
+        return True
+    except Exception as e:
+        print('Exception at grantPrivileges: ', e)
+    myDb.close()
+    return False
+
+def createEnv(path,username,password,dbName):
+    dict={
+        "PASSPHRASE":"",
+        "CRT":"",
+        "SSL_KEY":"",
+        "JWT_KEY":getRandomString(),
+        "MODE":"production",
+        "ORIGINS":"["+'"*"'+"]",
+        "DB_HOST":'localhost',
+        "DB_USER":username,
+        "DB_PASSWORD":password,
+        "DB":dbName,
+        "STATIC":'storage',
+        "NODE_ENV":"production",
+    }
+    text=''
+    for elem in dict:
+        value='""' if len(dict[elem])==0 else str(dict[elem])
+        text=text+elem+'='+value+"\n"
+    #print(text)
+    try:
+        with open(os.path.abspath(path+"/.env"),"w") as file: 
+            file.write(text)
+    except Exception as e:
+      printRed('Could not write .env file: ',e)
+    
+
+def createShortcut(source):
+    desktop = pathlib.Path.home() / 'Desktop'
+    os.remove(desktop/ 'TizonaManager')
+    source=abspath(source+'/Tizona Manager.exe')
+    try:
+        os.symlink(source,desktop / 'TizonaManager')
+    except Exception as e:
+        print('Unable to create shortcut')
+
+def createHomeLink(source):
+    menuFolder=r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs"
+    shell = Dispatch('WScript.Shell')
+    source=abspath(source+'/TizonaManager.exe')
+    access = shell.CreateShortcut(menuFolder+r"\Tizona Manager.lnk")
+    access.TargetPath = source
+    access.WorkingDirectory = os.path.dirname(source)
+    access.Save()
+
+def printRed(msg): print(f'\033[91m{msg}\033[0m')
+def printGreen(msg): print(f'\033[92m{msg}\033[0m')
+def printYellow(msg): print(f'\033[33m{msg}\033[0m')
