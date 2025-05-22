@@ -78,34 +78,36 @@ def main():
         print('\033[91mMySQL service was not detected\033[0m')
     else: 
         print('\033[92mMySQL service was detected\033[0m ')
-        print('Do you want to create and prepare a new database?')
-        print('[y] --> yes')
-        print('[n] --> no')
-        inputVal=input()
-        newUsername=''
-        newPassword=''
-        dbName='tizonaserver'
-        dbCreated=False
-        userCreated=False
-        if inputVal.lower().strip()=='y': #Install & prepare db
-            adminLogged=False
-            exit=False
-            username=''
-            password=''
-            while not adminLogged and not exit: #Asks MySQL admin user
-                print('Type MySQL admin username')
-                username=input()
-                password=getpass('Type password')
-                adminLogged=checkMYSQLAdmin(username,password)
-                if not adminLogged:  #Admin not verified
-                    print('\033[91mCould not check admin user\033[0m')
-                    print('Do you want to skip database creation?')
-                    print('[y] --> yes')
-                    print('[n] --> no')
-                    if input().strip().lower=='y':
-                        exit=True
-                else: #Admin verified
-                    print('\033[92mAdmin user verified successfully\033[0m ')
+        exit=False
+        adminLogged=False
+        while not adminLogged and not exit: #Asks MySQL admin user
+            print('Type MySQL admin username')
+            username=input()
+            password=getpass('Type password')
+            adminLogged=checkMYSQLAdmin(username,password)
+            if not adminLogged:  #Admin not verified
+                print('\033[91mCould not check admin user\033[0m')
+                print('Do you want to skip MySQL version check?')
+                print('[y] --> yes')
+                print('[n] --> no')
+                if input().strip().lower=='y':
+                    exit=True
+        if adminLogged:
+            print('\033[92mAdmin user verified successfully\033[0m ')
+            print('Do you want to create and prepare a new database?')
+            print('[y] --> yes')
+            print('[n] --> no')
+            inputVal=input()
+            newUsername=''
+            newPassword=''
+            dbName='tizonaserver'
+            dbCreated=False
+            userCreated=False
+            if inputVal.lower().strip()=='y': #Install & prepare db
+                exit=False
+                username=''
+                password=''
+                while not exit: #Asks MySQL admin user
                     print('TizonaServer needs a user and a password to connect to the database')
                     print('Create a new user?')
                     print('[y] --> yes')
@@ -113,44 +115,27 @@ def main():
                     confirmPassword='a'
                     exit=False
                     if input().strip().lower()=='y':#User creation
-                        while not exit:
-                            print('Type username')
-                            newUsername=input()
-                            newPassword=getpass('Type password: ')
-                            confirmPassword=getpass('Consirm password: ')
-                            if newPassword != confirmPassword: #Passwords don't match
-                                print("\033[91mPasswords do not match\033[0m")
-                            elif len(newUsername)>=2: #Username too short
-                               result=createUser(newUsername,newPassword) 
-                               if result!='userExists': 
-                                   userCreated=True
-                                   exit=True #User was created
-                               else: print("\033[91mThis user already exists\033[0m") #User already exists
-                            else: print("\033[91mUsername is not long enough\033[0m") #Username too short
-                            if not exit: #Something went wrong
-                                print('[s] --> skip user setup')
-                                print('Press Enter to try again')
-                                if input().strip().lower()=='s': exit=True
+                        newUsername,newPassword,userCreated = userCreation(newUsername,newPassword,userCreated)
                     else: 
                         print('\033[33mYou refused to create a new user. When you are asked to set the database username and password ' \
                         'in TizonaServer\'s .env file, make sure that this user has privileges on the database.\033[0m')
                         print()
 
 
-                #DB creation and set user privileges
-                exit=False
-                while not dbCreated and not exit:
-                    dbInput=input('Type database name (at least three characters): ')
-                    if len(dbInput)>2: dbName=dbInput
-                    dbCreated=createDB(dbName)
-                    if not dbCreated: 
-                        print(f"\033[91mCould not create database with name {dbName}\033[0m")
-                        print('[s] --> skip database creation')
-                        print('Press Enter to try again')
-                        if input().strip().lower()=='s': exit=True
-                    else:
-                        setDbTables(dbName)
-                        grantPrivileges(newUsername,dbName,newPassword)
+                    #DB creation and set user privileges
+                    exit=False
+                    while not dbCreated and not exit:
+                        dbInput=input('Type database name (at least three characters): ')
+                        if len(dbInput)>2: dbName=dbInput
+                        dbCreated=createDB(dbName)
+                        if not dbCreated: 
+                            print(f"\033[91mCould not create database with name {dbName}\033[0m")
+                            print('[s] --> skip database creation')
+                            print('Press Enter to try again')
+                            if input().strip().lower()=='s': exit=True
+                        else:
+                            setDbTables(dbName)
+                            grantPrivileges(newUsername,dbName,newPassword)
 
         if not dbCreated:
             print('\033[33mYou refused to create a new database\033[0m')
@@ -205,16 +190,27 @@ def main():
           input()
           return
 
-
-
-
-
-
-
-
-            
-
-
+def userCreation(newUsername,newPassword,userCreated):
+    while True:
+        print('Type username')
+        newUsername=input()
+        newPassword=getpass('Type password: ')
+        confirmPassword=getpass('Confirm password: ')
+        if newPassword != confirmPassword: #Passwords don't match
+            print("\033[91mPasswords do not match\033[0m")
+        elif len(newUsername)>=2: #Username too short
+           result=createUser(newUsername,newPassword) 
+           if result!='userExists': 
+               userCreated=True
+               break #User was created
+           else: print("\033[91mThis user already exists\033[0m") #User already exists
+        else: print("\033[91mUsername is not long enough\033[0m") #Username too short
+         #Something went wrong
+        print('[s] --> skip user setup')
+        print('Press Enter to try again')
+        if input().strip().lower()=='s': return ('','',False)
+        else: continue
+    return (newUsername,newPassword,userCreated)
 
 def initApp():
     try:
