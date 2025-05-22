@@ -240,10 +240,13 @@ def createEnv(path,username,password,dbName):
 
 def createShortcut(source):
     desktop = pathlib.Path.home() / 'Desktop'
-    os.remove(desktop/ 'TizonaManager')
-    source=abspath(source+'/Tizona Manager.exe')
     try:
-        os.symlink(source,desktop / 'TizonaManager')
+        os.remove(desktop/ 'Tizona Manager')
+    except:
+        None
+    source=abspath(source+'/TizonaManager.exe')
+    try:
+        os.symlink(source,desktop / 'Tizona Manager')
     except Exception as e:
         print('Unable to create shortcut')
 
