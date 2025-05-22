@@ -112,7 +112,6 @@ def main():
                     print('Create a new user?')
                     print('[y] --> yes')
                     print('[n] --> no')
-                    confirmPassword='a'
                     exit=False
                     if input().strip().lower()=='y':#User creation
                         newUsername,newPassword,userCreated = userCreation(newUsername,newPassword,userCreated)
@@ -120,7 +119,6 @@ def main():
                         print('\033[33mYou refused to create a new user. When you are asked to set the database username and password ' \
                         'in TizonaServer\'s .env file, make sure that this user has privileges on the database.\033[0m')
                         print()
-
 
                     #DB creation and set user privileges
                     exit=False
@@ -191,6 +189,7 @@ def main():
           return
 
 def userCreation(newUsername,newPassword,userCreated):
+    confirmPassword='a'
     while True:
         print('Type username')
         newUsername=input()
