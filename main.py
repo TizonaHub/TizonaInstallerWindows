@@ -6,18 +6,14 @@ import sys
 from getpass import getpass
 import zipfile
 import shutil
-
 nodeDownloadUrl='https://nodejs.org/dist/v22.15.1/node-v22.15.1-x64.msi'
 if not platform.system() == "Windows":
     print("You are not using Windows")
     exit(1)
-
 def main():
-    
+    updateEnv=False
     def prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated):
         exit=False
-        username=''
-        password=''
         while not exit: #Asks MySQL admin user
             print('TizonaServer needs a user and a password to connect to the database')
             print('Create a new user?')
@@ -70,6 +66,8 @@ def main():
             else: continue
         return (newUsername,newPassword,userCreated)
     
+    #PYTHON CHECK
+    checkPythonVersion()
     #NODE CHECK
     inputVal=''
     restart=False
@@ -107,7 +105,7 @@ def main():
                         'Node.js has been installed. Please restart the TizonaHub installer to make Node.js available.\n'
                         'If you started the TizonaHub installer using the command prompt, please open a new one.'
                     )
-
+                    input('Press Enter to close installer. Remember to restart it')
                     return
                 if not installMethod2:
                     os.system('nvm install 22')
@@ -123,14 +121,14 @@ def main():
                     path=input()
                 else:
                     inputVal='n' 
-                    if nodeVer>='v20.17.1' and nodeVer<'v23.0.0': print('\033[92mNode.js was detected:\033[0m '+nodeVer)
+                    if nodeVer>='20.17.1' and nodeVer<'23.0.0': print('\033[92mNode.js was detected:\033[0m '+nodeVer)
                     else: 
                         inputVal='c'
                         restart=True
                         print("\033[91mNode version should be greater than 20.17.1 and less than 23.0.0\033[0m")
         else:
             inputVal='n' 
-            if nodeVer>='v20.17.1' and nodeVer<'v23.0.0': print('\033[92mNode.js was detected:\033[0m '+nodeVer)
+            if nodeVer>='20.17.1' and nodeVer<'23.0.0': print('\033[92mNode.js was detected:\033[0m '+nodeVer)
             else: 
                 inputVal='c'
                 restart=True
@@ -140,15 +138,32 @@ def main():
     mysql=setServiceStartup()
     if not mysql:
         print('\033[91mMySQL service was not detected\033[0m')
-    else: 
+        printYellow('MySQL is a database program used to enable features like user accounts and access control')
+        printYellow("\nIf you want to enable user management later, you can install MySQL and run this installer again")
+        print('Do you want to install MySQL?')
+        print('[y] --> yes')
+        print('[n] --> no')
+        if input().strip().lower()=='y':
+            installMySQL()
+            input()
+            mysql=setServiceStartup()
+    if mysql: 
         print('\033[92mMySQL service was detected\033[0m ')
         exit=False
+        username=''
+        password=''
         adminLogged=False
         dbCreated=False
         userCreated=False
         newUsername=''
-        newPassword=''
+        newPassword=False
         dbName='tizonaserver'
+        print('Do you want to skip MySQL version check?')
+        print('[y] --> yes')
+        print('[Enter] --> no')
+        if input().strip().lower()=='y': exit=True
+        
+        
         while not adminLogged and not exit: #Asks MySQL admin user
             print('Type MySQL admin username')
             username=input()
@@ -162,6 +177,7 @@ def main():
                 if input().strip().lower()=='y':
                     exit=True
         if adminLogged:
+            checkMySQLVersion(username,password)
             print('\033[92mAdmin user verified successfully\033[0m ')
             print('Do you want to create and prepare a new database?')
             print('[y] --> yes')
@@ -180,23 +196,25 @@ def main():
         while not exit:
             installationPath=r'C:\Program Files (x86)'
             print(r'Default: C:\Program Files (x86)\TizonaHub')
-            print('[s] --> use default installation path')
-            print('Or type a custom path')
+            print('[Enter] --> use default installation path')
+            print('Or enter a custom path')
             inputVal=input()
-            if len(inputVal)==0: inputVal=installationPath
-            if inputVal.strip().lower()!='s':
-                if os.path.isdir(inputVal): 
-                    if os.path.isdir(os.path.abspath(inputVal+'/TizonaHub')):
-                        exit=False
-                        print('\033[91mTizonaHub folder already exists on this path\033[0m')
-                    else:
-                        installationPath=inputVal
+            if len(inputVal.strip())==0: inputVal=installationPath
+            if os.path.isdir(inputVal): 
+                if os.path.isdir(os.path.abspath(inputVal+'/TizonaHub')):
+                    exit=False
+                    printYellow('\033[91mTizonaHub folder already exists on this path. If you continue, the installer will only update .env file data\033[0m')
+                    print('[Enter] --> Continue')
+                    print('[n] --> select path again')
+                    if len(input())==0:
+                        updateEnv=True
                         exit=True
-                else: print('\033[91mCould not resolve path, select another one \033[0m')
-            else: exit=True
+                else:
+                    installationPath=inputVal
+                    exit=True
+            else: print('\033[91mCould not resolve path, select another one \033[0m')
         print()   
         #print('>> CREATING .env FILE <<')
-        print()
         print('Summary: ')
         print(f'  *Database name: {dbName if dbCreated else 'Missing'}')
         print(f'  *Username: {newUsername if userCreated else 'Missing'}')
@@ -204,26 +222,41 @@ def main():
 
         if not dbCreated: dbName=input('Type database name:  ')
         if not newUsername: newUsername=input('Type database username:  ')
-        if not newPassword: newPassword=''
+        if not newPassword: newPassword=getpass('Type database password: ')
 
         target = os.path.abspath(installationPath+r'\TizonaHub\TizonaServer')  
         targetRoot=os.path.abspath(installationPath+r'\TizonaHub')  
         createShortcut(targetRoot)
         createHomeLink(targetRoot)
-
-        try:
-            with zipfile.ZipFile('TizonaHub_s0.3.0c0.3.0.zip', 'r') as zip_ref:
-                zip_ref.extractall(target)
-            subprocess.run(['npm.cmd','i'],cwd=target)
+        if updateEnv:
             createEnv(target,newUsername,newPassword,dbName)
-            subprocess.run(['npm.cmd','i','-g','pm2'],cwd=target)
-            shutil.copy(getResPath('TizonaManager.exe'),getResPath(os.path.abspath(targetRoot+r'\TizonaManager.exe')))
-        except Exception as e:
-          print(e)
-          printRed('Could not install TizonaHub')
-          printRed('Finishing...')
-          input()
-          return
+            printGreen('.env file updated')
+
+        else:
+            try:
+                with zipfile.ZipFile(getResPath('TizonaHub_s0.3.0c0.3.0.zip'), 'r') as zip_ref:
+                    zip_ref.extractall(target)
+                    print('zip extracted')
+                createEnv(target,newUsername,newPassword,dbName)
+                print('.env created')
+                print('Installing server dependencies...')
+                subprocess.run(['npm.cmd','i','-g','pm2'],cwd=target,timeout=400)
+                subprocess.run(['npm.cmd','i'],cwd=target,timeout=400)
+                shutil.copy(getResPath('TizonaManager.exe'),getResPath(os.path.abspath(targetRoot+r'\TizonaManager.exe')))
+                printGreen('TizonaHub installed successfully')
+                input('Press Enter to exit...')
+            except subprocess.TimeoutExpired as e:
+                printRed('The process took too long and was terminated.')
+                printRed(f'Command: {" ".join(e.cmd)}')
+                printRed('Could not install TizonaHub')
+                printRed('Press Ctrl + C to exit...')
+                return
+            except Exception as e:
+                print(e)
+                printRed('Could not install TizonaHub')
+                printRed('Press Enter to exit...')
+                input()
+                return
 
 
 def initApp():
@@ -235,7 +268,7 @@ def initApp():
             ctypes.windll.shell32.ShellExecuteW(None, "runas", 'wt.exe', " ".join(sys.argv), None, True) #sys.executable
 
     except:
-        traceback.print_exc()
+        #traceback.print_exc()
         input("\nPress enter to exit...")
 
 
