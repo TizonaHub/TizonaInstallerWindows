@@ -1,11 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('setup.sql', '.'),
+        ('TizonaHub_s0.3.0c0.3.0.zip', '.'),
+        ('TizonaManager.exe', '.')
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -14,6 +17,7 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
