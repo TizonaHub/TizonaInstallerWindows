@@ -43,7 +43,11 @@ pip install -r requirements.txt
 - You can customize checks, installation steps, and user prompts as needed.
 
 ---
-
+## Generating .exe
+```bash
+pyinstaller main.spec
+```
+---
 ## 📃 Notes
 
 - The installer must be run with administrator privileges to install or update system components like Node.js, Python, or MySQL.
