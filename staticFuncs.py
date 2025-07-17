@@ -9,6 +9,7 @@ import requests
 from win32com.client import Dispatch
 import pathlib
 import re
+import shutil
 
 
 CREATE_NO_WINDOW = 0x08000000
@@ -209,6 +210,15 @@ def setServiceStartup():
     except Exception as e:
         return False
     
+
+def getShell():
+    if shutil.which('wt'): return shutil.which('wt')
+    if shutil.which('powershell'): return shutil.which('powershell')
+    if shutil.which('cmd'): return shutil.which('cmd')
+
+def supports_ansi():
+    return sys.stdout.isatty() and ('WT_SESSION' in os.environ or 'TERM' in os.environ)
+
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
@@ -264,9 +274,9 @@ def createEnv(path,username,password,dbName):
         "CRT":"",
         "SSL_KEY":"",
         "JWT_KEY":getRandomString(),
-        "MODE":"production",
+        #"MODE":"production", ??
         "ORIGINS":"["+'"*"'+"]",
-        "DB_HOST":'localhost',
+        "DB_HOST":'127.0.0.1',
         "DB_USER":username,
         "DB_PASSWORD":password,
         "DB":dbName,
@@ -306,9 +316,9 @@ def createHomeLink(source):
     access.WorkingDirectory = os.path.dirname(source)
     access.Save()
 
-def printRed(msg): print(f'\033[91m{msg}\033[0m')
-def printGreen(msg): print(f'\033[92m{msg}\033[0m')
-def printYellow(msg): print(f'\033[33m{msg}\033[0m')
+def printRed(msg): print(f'\033[91m{msg}\033[0m') if supports_ansi() else print(msg)
+def printGreen(msg): print(f'\033[92m{msg}\033[0m') if supports_ansi() else print(msg)
+def printYellow(msg): print(f'\033[33m{msg}\033[0m') if supports_ansi() else print(msg)
 
 def getPythonVersion():
     try:
@@ -331,9 +341,9 @@ def installPython():
     os.system(getResPath('python-3.13.3-amd64.exe'))
 
 def checkPythonVersion():
-    pythonVersion=getVersionNumber(getPythonVersion())
     exit=False
     while not exit:
+        pythonVersion=getVersionNumber(getPythonVersion())    
         if not pythonVersion:
             printYellow('Python installation was not detected')
             print('[Enter] -> Download and install Python 3.13')
@@ -342,6 +352,7 @@ def checkPythonVersion():
                 printYellow('Remember to install Python 3.13')
                 return False
             installPython()
+            return False
         elif pythonVersion >= '3.10.0' and pythonVersion <= '4.0.0':
             printGreen(f'Python version: {pythonVersion}')
             return pythonVersion
@@ -351,10 +362,11 @@ def checkPythonVersion():
                 printRed(f'Python version must be 3.10.0 or higher ')
             elif pythonVersion > '4.0.0':
                 printRed('Python version must be less than 4.0.0')
-            print('Download and install Python version 3.13.3 ')
+            print('Download and install Python version 3.13.3 ?')
             print('[Enter] -> yes')
             print('[n] -> no')
             if input().strip().lower()=='n':
                 return False
             else:
                 installPython()
+                return False
