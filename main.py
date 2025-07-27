@@ -7,6 +7,7 @@ from getpass import getpass
 import zipfile
 import shutil
 nodeDownloadUrl='https://nodejs.org/dist/v22.15.1/node-v22.15.1-x64.msi'
+bundleName='TizonaHubBundle_19-07-25.zip'
 if not platform.system() == "Windows":
     print("You are not using Windows")
     exit(1)
@@ -66,6 +67,14 @@ def main():
             else: continue
         return (newUsername,newPassword,userCreated)
     
+    while True:
+        print("\033[93mNote: This installation requires downloading additional resources from the Internet (e.g., Node.js, MySQL, Python).\033[0m")
+        print("\033[90mType LICENSE to view the license and third-party notices, or press Enter to start installing\033[0m")
+        if input().lower()=='license':
+            os.startfile(getResPath('LICENSE'))
+            os.startfile(getResPath('LICENSES/THIRD-PARTY-LICENSES.txt'))
+        else: break
+    print('Starting installation')
     #PYTHON CHECK
     checkPythonVersion()
     #NODE CHECK
@@ -238,15 +247,16 @@ def main():
         printGreen('.env file updated')
     else:
         try:
-            with zipfile.ZipFile(getResPath('TizonaHub_s0.3.0c0.3.0.zip'), 'r') as zip_ref:
-                zip_ref.extractall(target)
-                print('zip extracted')
+            with zipfile.ZipFile(getResPath(bundleName), 'r') as zip_ref:
+                zip_ref.extractall(targetRoot)
+                print('bundle zip extracted')
             createEnv(target,newUsername,newPassword,dbName)
             print('.env created')
             print('Installing server dependencies...')
             subprocess.run(['npm.cmd','i','-g','pm2'],cwd=target,timeout=400)
-            subprocess.run(['npm.cmd','i','--only=prod'],cwd=target,timeout=400)
+            subprocess.run(['npm.cmd','i','--omit=dev'],cwd=target,timeout=400)
             shutil.copy(getResPath('TizonaManager.exe'),getResPath(os.path.abspath(targetRoot+r'\TizonaManager.exe')))
+            if os.path.isfile(targetRoot+r'\README.txt'): os.remove(targetRoot+r'\README.txt')
             printGreen('TizonaHub installed successfully')
             input('Press Enter to exit...')
         except subprocess.TimeoutExpired as e:
