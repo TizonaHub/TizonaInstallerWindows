@@ -6,8 +6,8 @@ import sys
 from getpass import getpass
 import zipfile
 import shutil
+from config import *
 nodeDownloadUrl='https://nodejs.org/dist/v22.15.1/node-v22.15.1-x64.msi'
-bundleName='TizonaHubBundle_19-07-25.zip'
 if not platform.system() == "Windows":
     print("You are not using Windows")
     exit(1)
