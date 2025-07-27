@@ -6,8 +6,10 @@ a = Analysis(
     binaries=[],
     datas=[
         ('setup.sql', '.'),
-        ('TizonaHub_s0.3.0c0.3.0.zip', '.'),
-        ('TizonaManager.exe', '.')
+        ('TizonaHubBundle_19-07-25.zip', '.'),
+        ('TizonaManager.exe', '.'),
+        ('LICENSE','.'),
+        ('LICENSES/THIRD-PARTY-LICENSES.txt','LICENSES')
     ],
     hiddenimports=[],
     hookspath=[],
