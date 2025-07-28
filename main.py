@@ -6,6 +6,7 @@ import sys
 from getpass import getpass
 import zipfile
 import shutil
+from time import sleep
 from config import *
 nodeDownloadUrl='https://nodejs.org/dist/v22.15.1/node-v22.15.1-x64.msi'
 if not platform.system() == "Windows":
@@ -72,6 +73,7 @@ def main():
         print("\033[90mType LICENSE to view the license and third-party notices, or press Enter to start installing\033[0m")
         if input().lower()=='license':
             os.startfile(getResPath('LICENSE'))
+            sleep(0.25)
             os.startfile(getResPath('LICENSES'))
         else: break
     print('Starting installation')
