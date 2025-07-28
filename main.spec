@@ -9,7 +9,7 @@ a = Analysis(
         ('TizonaHubBundle_19-07-25.zip', '.'),
         ('TizonaManager.exe', '.'),
         ('LICENSE','.'),
-        ('LICENSES/THIRD-PARTY-LICENSES.txt','LICENSES')
+        ('LICENSES','LICENSES')
     ],
     hiddenimports=[],
     hookspath=[],
