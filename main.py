@@ -9,7 +9,7 @@ import shutil
 from config import *
 nodeDownloadUrl='https://nodejs.org/dist/v22.15.1/node-v22.15.1-x64.msi'
 if not platform.system() == "Windows":
-    print("You are not using Windows")
+    print("This installer only works on Windows")
     exit(1)
 def main():
     updateEnv=False
@@ -72,7 +72,7 @@ def main():
         print("\033[90mType LICENSE to view the license and third-party notices, or press Enter to start installing\033[0m")
         if input().lower()=='license':
             os.startfile(getResPath('LICENSE'))
-            os.startfile(getResPath('LICENSES/THIRD-PARTY-LICENSES.txt'))
+            os.startfile(getResPath('LICENSES'))
         else: break
     print('Starting installation')
     #PYTHON CHECK
@@ -283,7 +283,10 @@ def initApp():
 
     except:
         #traceback.print_exc()
-        input("\nPress enter to exit...")
+        try:            
+            input("\nPress enter to exit...")
+        except:
+            None
 
 
 initApp()
