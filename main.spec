@@ -6,7 +6,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('setup.sql', '.'),
-        ('TizonaHubBundle_19-07-25.zip', '.'),
+        ('TizonaHubBundle_29-07-25.zip', '.'),
         ('TizonaManager.exe', '.'),
         ('LICENSE','.'),
         ('LICENSES','LICENSES')
