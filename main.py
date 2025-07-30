@@ -16,7 +16,6 @@ if not platform.system() == "Windows":
     exit(1)
 def main():
     global useFullNodePath
-    print(useFullNodePath)
     updateEnv=False
     def prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated):
         exit=False
