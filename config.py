@@ -1,1 +1,1 @@
-bundleName='TizonaHubBundle_29-07-25'
+bundleName='TizonaHubBundle_29-07-25.zip'
