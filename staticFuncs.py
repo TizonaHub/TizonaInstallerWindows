@@ -319,6 +319,8 @@ def createHomeLink(source):
 def printRed(msg): print(f'\033[91m{msg}\033[0m') if supports_ansi() else print(msg)
 def printGreen(msg): print(f'\033[92m{msg}\033[0m') if supports_ansi() else print(msg)
 def printYellow(msg): print(f'\033[33m{msg}\033[0m') if supports_ansi() else print(msg)
+def printYellowLight(msg): print(f'\033[93m{msg}\033[0m') if supports_ansi() else print(msg)
+def printGray(msg): print(f'\033[90m{msg}\033[0m') if supports_ansi() else print(msg)
 
 def getPythonVersion():
     try:
