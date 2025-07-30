@@ -9,10 +9,14 @@ import shutil
 from time import sleep
 from config import *
 nodeDownloadUrl='https://nodejs.org/dist/v22.15.1/node-v22.15.1-x64.msi'
+useFullNodePath=False
+fullNodePath='C:/Program Files/nodejs/node.exe'
 if not platform.system() == "Windows":
     print("This installer only works on Windows")
     exit(1)
 def main():
+    global useFullNodePath
+    print(useFullNodePath)
     updateEnv=False
     def prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated):
         exit=False
@@ -25,9 +29,9 @@ def main():
             if input().strip().lower()=='y':#User creation
                 newUsername,newPassword,userCreated = userCreation(newUsername,newPassword,userCreated)
             else: 
-                printYellow('You refused to create a new user. When you are asked to set the database username and password ' \
+                printYellow('\nYou refused to create a new user. When you are asked to set the database username and password ' \
                 'in TizonaServer\'s .env file, make sure that this user has privileges on the database')
-                print
+                
             #DB creation and set user privileges
             exit=False
             while not dbCreated and not exit:
@@ -112,12 +116,15 @@ def main():
                         downloadResource(nodeDownloadUrl, 'node-v22.15.1-x64.msi')
                     os.system(getResPath('node-v22.15.1-x64.msi'))
                     if nvmExists==0: os.system('nvm off')
-                    printGreen(
+                    if(os.path.isfile(fullNodePath)):
+                        useFullNodePath=True
+                    else:
+                        printGreen(
                         'Node.js has been installed. Please restart the TizonaHub installer to make Node.js available.\n'
                         'If you started the TizonaHub installer using the command prompt, please open a new one.'
-                    )
-                    input('Press Enter to close installer. Remember to restart it')
-                    return
+                        )
+                        input('Press Enter to close installer. Remember to restart it')
+                        return
                 if not installMethod2:
                     os.system('nvm install 22')
                     os.system('nvm on')
@@ -145,6 +152,10 @@ def main():
                 restart=True
                 printYellow("Node version should be greater than 20.17.1 and less than 23.0.0")
 
+    if not nodeVer:
+        printRed('Node.js must be installed to complete TizonaHub installation, but it was not detected')
+        printRed('Please install it.')
+        exit(1)
     #MYSQL CHECK
     mysql=setServiceStartup()
     dbCreated=False
@@ -200,6 +211,7 @@ def main():
                 dbCreated,dbName,newUsername,newPassword,userCreated = prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated)
                 
         if not dbCreated:
+            print()
             printYellow('You refused to create a new database')
     print()
     exit=False
@@ -237,6 +249,7 @@ def main():
     print(f'  *Database name: {dbName if dbCreated else 'Missing'}')
     print(f'  *Username: {newUsername if userCreated else 'Missing'}')
     print(rf'  *Installation path: {installationPath}\TizonaHub')
+    print()
     if not dbCreated: dbName=input('Type database name:  ')
     if not newUsername: newUsername=input('Type database username:  ')
     if not newPassword: newPassword=getpass('Type database password: ')
@@ -255,8 +268,10 @@ def main():
             createEnv(target,newUsername,newPassword,dbName)
             print('.env created')
             print('Installing server dependencies...')
-            subprocess.run(['npm.cmd','i','-g','pm2'],cwd=target,timeout=400)
-            subprocess.run(['npm.cmd','i','--omit=dev'],cwd=target,timeout=400)
+            npm_cmd = "C:/Program Files/nodejs/npm.cmd"
+            npmCommand='npm.cmd' if not useFullNodePath else npm_cmd
+            subprocess.run([npmCommand,'i','-g','pm2'],cwd=target,timeout=400)
+            subprocess.run([npmCommand,'i','--omit=dev'],cwd=target,timeout=400)
             shutil.copy(getResPath('TizonaManager.exe'),getResPath(os.path.abspath(targetRoot+r'\TizonaManager.exe')))
             if os.path.isfile(targetRoot+r'\README.txt'): os.remove(targetRoot+r'\README.txt')
             printGreen('TizonaHub installed successfully')
