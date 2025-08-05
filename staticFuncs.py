@@ -225,6 +225,13 @@ def is_admin():
     except:
         return False
     
+def isExe():
+    try:
+        base_path = sys._MEIPASS
+        return True
+    except Exception:
+        return False
+    
 def getResPath(relative_path):
     try:
         base_path = sys._MEIPASS
