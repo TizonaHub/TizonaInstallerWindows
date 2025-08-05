@@ -29,7 +29,7 @@ exe = EXE(
     a.datas,
     [],
     icon='icon.ico',
-    name='main',
+    name='TizonaInstaller',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
