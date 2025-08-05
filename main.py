@@ -292,6 +292,8 @@ def main():
                 if os.path.isfile(targetRoot+r'\LICENSES\LICENSE-SUMMARY-TIZONACLIENT.txt'):
                     shutil.move(targetRoot+r'\LICENSES\LICENSE-SUMMARY-TIZONACLIENT.txt',targetRoot+r'\LICENSES\LICENSES-TIZONACLIENT\LICENSE-SUMMARY-TIZONACLIENT.txt')
                 if os.path.isdir(targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER'):shutil.rmtree(targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
+                shutil.copytree(getResPath('LICENSES/TizonaManager'),targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
+
             except Exception as e:
               if not isExe():printRed(f'An exception occurred at DEALING WITH LICENSES: {e}')
             ##
