@@ -293,6 +293,9 @@ def main():
                     shutil.move(targetRoot+r'\LICENSES\LICENSE-SUMMARY-TIZONACLIENT.txt',targetRoot+r'\LICENSES\LICENSES-TIZONACLIENT\LICENSE-SUMMARY-TIZONACLIENT.txt')
                 if os.path.isdir(targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER'):shutil.rmtree(targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
                 shutil.copytree(getResPath('LICENSES/TizonaManager'),targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
+                subprocess.run("npx license-checker --json > third-party-licenses.json", shell=True, cwd=targetRoot+'/TizonaServer')
+                if os.path.isfile(targetRoot+'/TizonaServer/third-party-licenses.json'): 
+                    os.rename(targetRoot+'/TizonaServer/third-party-licenses.json',targetRoot+'/LICENSES/LICENSES-TIZONASERVER/third-party-licenses.json')
 
             except Exception as e:
               if not isExe():printRed(f'An exception occurred at DEALING WITH LICENSES: {e}')
