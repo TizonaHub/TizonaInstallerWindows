@@ -180,9 +180,9 @@ def main():
     if mysql: 
         printGreen('MySQL service was detected ')
         print('Do you want to skip MySQL version check?')
-        print('[y] --> yes')
-        print('[Enter] --> no')
-        if input().strip().lower()=='y': exit=True
+        print('[n] --> no')
+        print('[Enter] --> yes')
+        if input().strip().lower()=='': exit=True
         
         
         while not adminLogged and not exit: #Asks MySQL admin user
@@ -259,7 +259,18 @@ def main():
     if updateEnv:
         createEnv(target,newUsername,newPassword,dbName)
         printGreen('.env file updated')
+        print('Press Enter to exit')
     else:
+        try:
+            if os.path.isdir(targetRoot):shutil.rmtree(targetRoot)
+        except Exception as e:
+            if not isExe():
+              print(e)
+
+            printRed('Unable to remove the TizonaHub folder. Please make sure that no TizonaHub process is running and try again.' \
+            'If the problem persists, restart your computer or manually delete:') 
+            input('Press Enter to exit...')
+            exit(1)
         try:
             with zipfile.ZipFile(getResPath(bundleName), 'r') as zip_ref:
                 zip_ref.extractall(targetRoot)
@@ -280,7 +291,7 @@ def main():
                     shutil.move(targetRoot+r'\LICENSES\ATTRIBUTIONS-TIZONACLIENT.txt',targetRoot+r'\LICENSES\LICENSES-TIZONACLIENT\ATTRIBUTIONS-TIZONACLIENT.txt')
                 if os.path.isfile(targetRoot+r'\LICENSES\LICENSE-SUMMARY-TIZONACLIENT.txt'):
                     shutil.move(targetRoot+r'\LICENSES\LICENSE-SUMMARY-TIZONACLIENT.txt',targetRoot+r'\LICENSES\LICENSES-TIZONACLIENT\LICENSE-SUMMARY-TIZONACLIENT.txt')
-                shutil.copytree(getResPath('LICENSES/TizonaManager'),targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
+                if os.path.isdir(targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER'):shutil.rmtree(targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
             except Exception as e:
               if not isExe():printRed(f'An exception occurred at DEALING WITH LICENSES: {e}')
             ##
