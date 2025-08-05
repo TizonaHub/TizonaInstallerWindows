@@ -272,7 +272,18 @@ def main():
             subprocess.run([npmCommand,'i','-g','pm2'],cwd=target,timeout=400)
             subprocess.run([npmCommand,'i','--omit=dev'],cwd=target,timeout=400)
             shutil.copy(getResPath('TizonaManager.exe'),getResPath(os.path.abspath(targetRoot+r'\TizonaManager.exe')))
-            if os.path.isfile(targetRoot+r'\README.txt'): os.remove(targetRoot+r'\README.txt')
+
+            ##DEALING WITH LICENSES
+            try:
+                #if os.path.isfile(targetRoot+r'\README.txt'): os.remove(targetRoot+r'\README.txt')
+                if os.path.isfile(targetRoot+r'\LICENSES\ATTRIBUTIONS-TIZONACLIENT.txt'):
+                    shutil.move(targetRoot+r'\LICENSES\ATTRIBUTIONS-TIZONACLIENT.txt',targetRoot+r'\LICENSES\LICENSES-TIZONACLIENT\ATTRIBUTIONS-TIZONACLIENT.txt')
+                if os.path.isfile(targetRoot+r'\LICENSES\LICENSE-SUMMARY-TIZONACLIENT.txt'):
+                    shutil.move(targetRoot+r'\LICENSES\LICENSE-SUMMARY-TIZONACLIENT.txt',targetRoot+r'\LICENSES\LICENSES-TIZONACLIENT\LICENSE-SUMMARY-TIZONACLIENT.txt')
+                shutil.copytree(getResPath('LICENSES/TizonaManager'),targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
+            except Exception as e:
+              if not isExe():printRed(f'An exception occurred at DEALING WITH LICENSES: {e}')
+            ##
             printGreen('TizonaHub installed successfully')
             input('Press Enter to exit...')
         except subprocess.TimeoutExpired as e:
