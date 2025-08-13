@@ -73,7 +73,8 @@ def main():
     
     while True:
         printYellowLight("Note: This installation requires downloading additional resources from the Internet (e.g., Node.js, MySQL, Python).")
-        printGray("Type LICENSE to view the license and third-party notices, or press Enter to start installing")
+        printGray("Type LICENSE to view the license and third-party notices")
+        print("Press enter to start installing")
         if input().lower()=='license':
             os.startfile(getResPath('LICENSE'))
             sleep(0.25)
