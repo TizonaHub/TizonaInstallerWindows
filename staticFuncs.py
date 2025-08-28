@@ -122,7 +122,8 @@ def checkMYSQLAdmin(user,password):
         mydb = pymysql.connect(
             host="localhost",
             user=user,
-            password=password
+            password=password,
+            ssl={"ssl": {}}
         )
         dbCursor=mydb.cursor()
         randomString=getRandomString(False,10)
@@ -140,7 +141,8 @@ def getMYSQLVersion(user,password):
         mydb = pymysql.connect(
             host="localhost",
             user=user,
-            password=password
+            password=password,
+            ssl={"ssl": {}}
         )
         mycursor = mydb.cursor()
         sql = "SELECT VERSION()"
@@ -185,7 +187,8 @@ def getConnection(db=None):
         config = {
             'host': "localhost",
             'user': adminData["username"],
-            'password': adminData["password"]
+            'password': adminData["password"],
+            'ssl':{"ssl": {}} 
         }
         if db:
             config['database'] = db
