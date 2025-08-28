@@ -11,6 +11,7 @@ from config import *
 nodeDownloadUrl='https://nodejs.org/dist/v22.15.1/node-v22.15.1-x64.msi'
 useFullNodePath=False
 fullNodePath='C:/Program Files/nodejs/node.exe'
+
 if not platform.system() == "Windows":
     print("This installer only works on Windows")
     exit(1)
@@ -81,8 +82,6 @@ def main():
             os.startfile(getResPath('LICENSES'))
         else: break
     print('Starting installation')
-    #PYTHON CHECK
-    checkPythonVersion()
     #NODE CHECK
     inputVal=''
     restart=False
@@ -116,13 +115,14 @@ def main():
                         downloadResource(nodeDownloadUrl, 'node-v22.15.1-x64.msi')
                     os.system(getResPath('node-v22.15.1-x64.msi'))
                     if nvmExists==0: os.system('nvm off')
-                    if(os.path.isfile(fullNodePath)):
-                        useFullNodePath=True
+                    #if(os.path.isfile(fullNodePath)):
+                    #    useFullNodePath=True
                     else:
                         printGreen(
-                        'Node.js has been installed. Please restart the TizonaHub installer to make Node.js available.\n'
-                        'If you started the TizonaHub installer using the command prompt, please open a new one.'
+                        'Node.js has been installed. '
                         )
+                        printYellow('Please restart the TizonaHub installer to make Node.js available.\n'
+                        'If you started the TizonaHub installer using the command prompt, please open a new one.')
                         input('Press Enter to close installer. Remember to restart it')
                         return
                 if not installMethod2:
@@ -156,6 +156,8 @@ def main():
         printRed('Node.js must be installed to complete TizonaHub installation, but it was not detected')
         printRed('Please install it.')
         exit(1)
+    #PYTHON CHECK
+    checkPythonVersion()
     #MYSQL CHECK
     mysql=setServiceStartup()
     dbCreated=False
@@ -294,7 +296,7 @@ def main():
                     shutil.move(targetRoot+r'\LICENSES\LICENSE-SUMMARY-TIZONACLIENT.txt',targetRoot+r'\LICENSES\LICENSES-TIZONACLIENT\LICENSE-SUMMARY-TIZONACLIENT.txt')
                 if os.path.isdir(targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER'):shutil.rmtree(targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
                 shutil.copytree(getResPath('LICENSES/TizonaManager'),targetRoot+'/LICENSES/LICENSES-TIZONAMANAGER')
-                subprocess.run("npx license-checker --json > third-party-licenses.json", shell=True, cwd=targetRoot+'/TizonaServer')
+                #subprocess.run("npx license-checker --json > third-party-licenses.json", shell=True, cwd=targetRoot+'/TizonaServer')
                 if os.path.isfile(targetRoot+'/TizonaServer/third-party-licenses.json'): 
                     os.rename(targetRoot+'/TizonaServer/third-party-licenses.json',targetRoot+'/LICENSES/LICENSES-TIZONASERVER/third-party-licenses.json')
 
