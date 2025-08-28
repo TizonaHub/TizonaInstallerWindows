@@ -156,7 +156,6 @@ def installMySQL():
     installerUrl='https://cdn.mysql.com//Downloads/MySQLInstaller/mysql-installer-web-community-8.0.42.0.msi'
     print('Downloading installer...')
     downloadResource(installerUrl,'mysql-installer-web-community-8.0.42.0.msi')
-    print('Press Enter when MySQL is installed')
     os.system(getResPath('mysql-installer-web-community-8.0.42.0.msi'))
 
 def checkMySQLVersion(user,password):
@@ -349,7 +348,6 @@ def installPython():
     installerUrl='https://www.python.org/ftp/python/3.13.3/python-3.13.3-amd64.exe'
     print('Downloading installer...')
     downloadResource(installerUrl,'python-3.13.3-amd64.exe')
-    print('Press Enter when Python is installed')
     os.system(getResPath('python-3.13.3-amd64.exe'))
 
 def checkPythonVersion():
