@@ -10,6 +10,8 @@ from win32com.client import Dispatch
 import pathlib
 import re
 import shutil
+from requirements import *
+import pickle
 
 
 CREATE_NO_WINDOW = 0x08000000
@@ -153,10 +155,10 @@ def getMYSQLVersion(user,password):
     except:
         return False
 def installMySQL():
-    installerUrl='https://cdn.mysql.com//Downloads/MySQLInstaller/mysql-installer-web-community-8.0.42.0.msi'
+    installerUrl=MYSQLDownloadUrl
     print('Downloading installer...')
-    downloadResource(installerUrl,'mysql-installer-web-community-8.0.42.0.msi')
-    os.system(getResPath('mysql-installer-web-community-8.0.42.0.msi'))
+    downloadResource(installerUrl,MYSQLRelPath)
+    os.system(getResPath(MYSQLRelPath))
 
 def checkMySQLVersion(user,password):
     version=getMYSQLVersion(user,password)
@@ -345,10 +347,10 @@ def getPythonVersion():
         return False
     
 def installPython():
-    installerUrl='https://www.python.org/ftp/python/3.13.3/python-3.13.3-amd64.exe'
+    installerUrl=PythonDownloadUrl
     print('Downloading installer...')
-    downloadResource(installerUrl,'python-3.13.3-amd64.exe')
-    os.system(getResPath('python-3.13.3-amd64.exe'))
+    downloadResource(installerUrl,PythonRelPath)
+    os.system(getResPath(PythonRelPath))
 
 def checkPythonVersion():
     exit=False
@@ -356,23 +358,23 @@ def checkPythonVersion():
         pythonVersion=getVersionNumber(getPythonVersion())    
         if not pythonVersion:
             printYellow('Python installation was not detected')
-            print('[Enter] -> Download and install Python 3.13')
+            print(f'[Enter] -> Download and install Python {PythonInstallingVersion}')
             print('[s] -> Skip')
             if input().strip().lower()=='s':
-                printYellow('Remember to install Python 3.13')
+                printYellow(f'Remember to install Python {PythonInstallingVersion}')
                 return False
             installPython()
             return False
-        elif pythonVersion >= '3.10.0' and pythonVersion <= '4.0.0':
+        elif pythonVersion >= PythonMinVer and pythonVersion <= PythonMaxVer:
             printGreen(f'Python version: {pythonVersion}')
             return pythonVersion
         else:
             printRed(f'Python version: {pythonVersion}')
-            if pythonVersion < '3.10.0':
-                printRed(f'Python version must be 3.10.0 or higher ')
-            elif pythonVersion > '4.0.0':
-                printRed('Python version must be less than 4.0.0')
-            print('Download and install Python version 3.13.3 ?')
+            if pythonVersion < PythonMinVer:
+                printRed(f'Python version must be {PythonMinVer} or higher ')
+            elif pythonVersion > PythonMaxVer:
+                printRed(f'Python version must be less than {PythonMaxVer}')
+            print(f'Download and install Python version {PythonInstallingVersion} ?')
             print('[Enter] -> yes')
             print('[n] -> no')
             if input().strip().lower()=='n':
@@ -380,3 +382,25 @@ def checkPythonVersion():
             else:
                 installPython()
                 return False
+            
+def setProgramData():
+        program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
+
+        app_data_dir = os.path.join(program_data, "TizonaHub")
+        os.makedirs(app_data_dir, exist_ok=True)
+
+        data_file = os.path.join(app_data_dir, "data.dat")
+
+        data = {
+            "installerVersion": {installerVersion},
+            "clientVersion":    {clientVersion},
+            "serverVersion":    {serverVersion},
+            "managerVersion":   {managerVersion}
+            }
+        with open(data_file, "wb") as f:
+            pickle.dump(data, f)
+
+        '''with open(data_file, "rb") as f:
+            info = pickle.load(f)
+
+        print("Version:", info["version"])'''
