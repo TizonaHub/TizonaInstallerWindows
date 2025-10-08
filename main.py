@@ -76,13 +76,13 @@ def main():
     while True:
         printYellowLight("Note: This installation requires downloading additional resources from the Internet (e.g., Node.js, MySQL, Python).")
         printGray("Type LICENSE to view the license and third-party notices")
-        print("Press enter to start installing") if isUpdating else print("Press enter to start update")
+        print("Press enter to start installing") if not isUpdating else print("Press enter to start update")
         if input().lower()=='license':
             os.startfile(getResPath('LICENSE'))
             sleep(0.25)
             os.startfile(getResPath('LICENSES'))
         else: break
-    print('Starting installation') if isUpdating else print('Starting update') 
+    print('Starting installation') if not isUpdating else print('Starting update') 
     #NODE CHECK
     inputVal=''
     restart=False
@@ -218,36 +218,35 @@ def main():
             printYellow('You refused to create a new database')
     print()
     installationPath=r'C:\Program Files (x86)'
-    if not isUpdating:        
-        exit=False
-        print('Select installation folder')
-        while not exit:
-            print(r'Default: C:\Program Files (x86)\TizonaHub')
-            print('[Enter] --> use default installation path')
-            print('Or enter a custom path')
-            inputVal=input()
-            if len(inputVal.strip())==0: inputVal=installationPath
-            if os.path.isdir(inputVal): 
-                if os.path.isdir(os.path.abspath(inputVal+'/TizonaHub')):
-                    exit=False
-                    printYellow('TizonaHub folder already exists on this path.')
-                    print('[u] --> just update .env file data')
-                    print('[n] --> select path again')
-                    print('[Enter] --> delete folder and install TizonaHub')
-                    val=input()
-                    if val.lower().strip()=='u':
-                        updateEnv=True
-                        exit=True
-                    elif val.lower().strip=='n':
-                        exit=False
-                    elif len(val)==0:
-                        updateEnv=False
-                        exit=True
-                else:
-                    installationPath=inputVal
+    #if not isUpdating:        
+    exit=False
+    print('Select installation folder')
+    while not exit:
+        print(r'Default: C:\Program Files (x86)\TizonaHub')
+        print('[Enter] --> use default installation path')
+        print('Or enter a custom path')
+        inputVal=input()
+        if len(inputVal.strip())==0: inputVal=installationPath
+        if os.path.isdir(inputVal): 
+            if os.path.isdir(os.path.abspath(inputVal+'/TizonaHub')):
+                exit=False
+                printYellow('TizonaHub folder already exists on this path.')
+                print('[u] --> just update .env file data')
+                print('[n] --> select path again')
+                print('[Enter] --> delete folder and install TizonaHub')
+                val=input()
+                if val.lower().strip()=='u':
+                    updateEnv=True
                     exit=True
-            else: printRed('Could not resolve path, select another one')
-
+                elif val.lower().strip=='n':
+                    exit=False
+                elif len(val)==0:
+                    updateEnv=False
+                    exit=True
+            else:
+                installationPath=inputVal
+                exit=True
+        else: printRed('Could not resolve path, select another one')
     print()   
     #print('>> CREATING .env FILE <<')
     print('Summary: ')
