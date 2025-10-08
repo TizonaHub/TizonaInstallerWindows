@@ -8,10 +8,10 @@ import zipfile
 import shutil
 from time import sleep
 from config import *
-nodeDownloadUrl='https://nodejs.org/dist/v22.15.1/node-v22.15.1-x64.msi'
+from requirements import *
 useFullNodePath=False
 fullNodePath='C:/Program Files/nodejs/node.exe'
-
+isUpdating=True if '--update' in sys.argv else False
 if not platform.system() == "Windows":
     print("This installer only works on Windows")
     exit(1)
@@ -72,16 +72,17 @@ def main():
             else: continue
         return (newUsername,newPassword,userCreated)
     
+    #MAIN EXECUTION
     while True:
         printYellowLight("Note: This installation requires downloading additional resources from the Internet (e.g., Node.js, MySQL, Python).")
         printGray("Type LICENSE to view the license and third-party notices")
-        print("Press enter to start installing")
+        print("Press enter to start installing") if isUpdating else print("Press enter to start update")
         if input().lower()=='license':
             os.startfile(getResPath('LICENSE'))
             sleep(0.25)
             os.startfile(getResPath('LICENSES'))
         else: break
-    print('Starting installation')
+    print('Starting installation') if isUpdating else print('Starting update') 
     #NODE CHECK
     inputVal=''
     restart=False
@@ -95,7 +96,7 @@ def main():
                 printYellow('Do you want to install it?')
             else:
                 printYellow('Do you want to install a new version?')
-            print('[y] --> Download Node.js 22.15.1 and install')
+            print(f'[y] --> Download Node.js {nodeInstallingVersion} and install')
             print('[c] --> Check Node.js installation again')
             print('[n] --> Skip')
 
@@ -107,13 +108,13 @@ def main():
                 nvmExists=os.system('nvm --version')
                 if nvmExists==0:
                     printYellow('NVM was detected, Do you want to install Node.js using it?')
-                    print('[y] --> Download Node.js 22.15.1 and install with NVM')
+                    print(f'[y] --> Download Node.js {nodeInstallingVersion} and install with NVM')
                     print('[n] --> Download Node.js installer')
                     if input().lower().strip()=='y': installMethod2=False
                 if installMethod2:
-                    if not os.path.exists(getResPath('node-v22.15.1-x64.msi')):
-                        downloadResource(nodeDownloadUrl, 'node-v22.15.1-x64.msi')
-                    os.system(getResPath('node-v22.15.1-x64.msi'))
+                    if not os.path.exists(getResPath(nodeRelPath)):
+                        downloadResource(nodeDownloadUrl, nodeRelPath)
+                    os.system(getResPath(nodeRelPath))
                     if nvmExists==0: os.system('nvm off')
                     #if(os.path.isfile(fullNodePath)):
                     #    useFullNodePath=True
@@ -126,9 +127,9 @@ def main():
                         input('Press Enter to close installer. Remember to restart it')
                         return
                 if not installMethod2:
-                    os.system('nvm install 22')
+                    os.system(f'nvm install {nvmNodeVer}')
                     os.system('nvm on')
-                    os.system('nvm use 22')
+                    os.system(f'nvm use {nvmNodeVer}')
                 inputVal='c'
 
             if inputVal=='c':
@@ -139,18 +140,18 @@ def main():
                     path=input()
                 else:
                     inputVal='n' 
-                    if nodeVer>='20.17.1' and nodeVer<'23.0.0': printGreen('Node.js was detected: '+nodeVer)
+                    if nodeVer>=nodeMinVer and nodeVer<nodeMaxVer: printGreen('Node.js was detected: '+nodeVer)
                     else: 
                         inputVal='c'
                         restart=True
-                        printRed("mNode version should be greater than 20.17.1 and less than 23.0.0")
+                        printRed(f"mNode version should be greater than {nodeMinVer} and less than {nodeMaxVer}")
         else:
             inputVal='n' 
-            if nodeVer>='20.17.1' and nodeVer<'23.0.0': printGreen('Node.js was detected: '+nodeVer)
+            if nodeVer>=nodeMinVer and nodeVer<nodeMaxVer: printGreen('Node.js was detected: '+nodeVer)
             else: 
                 inputVal='c'
                 restart=True
-                printYellow("Node version should be greater than 20.17.1 and less than 23.0.0")
+                printYellow(f"Node version should be greater than {nodeMinVer} and less than {nodeMaxVer}")
 
     if not nodeVer:
         printRed('Node.js must be installed to complete TizonaHub installation, but it was not detected')
@@ -216,35 +217,37 @@ def main():
             print()
             printYellow('You refused to create a new database')
     print()
-    exit=False
-    print('Select installation folder')
-    while not exit:
-        installationPath=r'C:\Program Files (x86)'
-        print(r'Default: C:\Program Files (x86)\TizonaHub')
-        print('[Enter] --> use default installation path')
-        print('Or enter a custom path')
-        inputVal=input()
-        if len(inputVal.strip())==0: inputVal=installationPath
-        if os.path.isdir(inputVal): 
-            if os.path.isdir(os.path.abspath(inputVal+'/TizonaHub')):
-                exit=False
-                printYellow('TizonaHub folder already exists on this path.')
-                print('[u] --> just update .env file data')
-                print('[n] --> select path again')
-                print('[Enter] --> delete folder and install TizonaHub')
-                val=input()
-                if val.lower().strip()=='u':
-                    updateEnv=True
-                    exit=True
-                elif val.lower().strip=='n':
+    installationPath=r'C:\Program Files (x86)'
+    if not isUpdating:        
+        exit=False
+        print('Select installation folder')
+        while not exit:
+            print(r'Default: C:\Program Files (x86)\TizonaHub')
+            print('[Enter] --> use default installation path')
+            print('Or enter a custom path')
+            inputVal=input()
+            if len(inputVal.strip())==0: inputVal=installationPath
+            if os.path.isdir(inputVal): 
+                if os.path.isdir(os.path.abspath(inputVal+'/TizonaHub')):
                     exit=False
-                elif len(val)==0:
-                    updateEnv=False
+                    printYellow('TizonaHub folder already exists on this path.')
+                    print('[u] --> just update .env file data')
+                    print('[n] --> select path again')
+                    print('[Enter] --> delete folder and install TizonaHub')
+                    val=input()
+                    if val.lower().strip()=='u':
+                        updateEnv=True
+                        exit=True
+                    elif val.lower().strip=='n':
+                        exit=False
+                    elif len(val)==0:
+                        updateEnv=False
+                        exit=True
+                else:
+                    installationPath=inputVal
                     exit=True
-            else:
-                installationPath=inputVal
-                exit=True
-        else: printRed('Could not resolve path, select another one')
+            else: printRed('Could not resolve path, select another one')
+
     print()   
     #print('>> CREATING .env FILE <<')
     print('Summary: ')
@@ -286,6 +289,7 @@ def main():
             subprocess.run([npmCommand,'i','-g','pm2'],cwd=target,timeout=400)
             subprocess.run([npmCommand,'i','--omit=dev'],cwd=target,timeout=400)
             shutil.copy(getResPath('TizonaManager.exe'),getResPath(os.path.abspath(targetRoot+r'\TizonaManager.exe')))
+            setProgramData()
 
             ##DEALING WITH LICENSES
             try:
@@ -305,6 +309,8 @@ def main():
             ##
             printGreen('TizonaHub installed successfully')
             input('Press Enter to exit...')
+
+            
         except subprocess.TimeoutExpired as e:
             printRed('The process took too long and was terminated.')
             printRed(f'Command: {" ".join(e.cmd)}')
@@ -312,7 +318,7 @@ def main():
             printRed('Press Ctrl + C to exit...')
             return
         except Exception as e:
-            print(e)
+            printRed(e)
             printRed('Could not install TizonaHub')
             printRed('Press Enter to exit...')
             input()
@@ -328,7 +334,7 @@ def initApp():
             ctypes.windll.shell32.ShellExecuteW(None, "runas", getShell(), " ".join(sys.argv), None, True) #sys.executable
 
     except:
-        #traceback.print_exc()
+        if debug :traceback.print_exc()
         try:            
             input("\nPress enter to exit...")
         except:
