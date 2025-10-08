@@ -383,7 +383,7 @@ def checkPythonVersion():
                 installPython()
                 return False
             
-def setProgramData():
+def setProgramData(installationPath):
         program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
 
         app_data_dir = os.path.join(program_data, "TizonaHub")
@@ -395,7 +395,8 @@ def setProgramData():
             "installerVersion": {installerVersion},
             "clientVersion":    {clientVersion},
             "serverVersion":    {serverVersion},
-            "managerVersion":   {managerVersion}
+            "managerVersion":   {managerVersion},
+            "installationPath": {installationPath}
             }
         with open(data_file, "wb") as f:
             pickle.dump(data, f)

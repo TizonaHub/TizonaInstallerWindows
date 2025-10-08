@@ -289,7 +289,7 @@ def main():
             subprocess.run([npmCommand,'i','-g','pm2'],cwd=target,timeout=400)
             subprocess.run([npmCommand,'i','--omit=dev'],cwd=target,timeout=400)
             shutil.copy(getResPath('TizonaManager.exe'),getResPath(os.path.abspath(targetRoot+r'\TizonaManager.exe')))
-            setProgramData()
+            setProgramData(targetRoot)
 
             ##DEALING WITH LICENSES
             try:
