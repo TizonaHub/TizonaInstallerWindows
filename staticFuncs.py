@@ -24,6 +24,7 @@ dbEnvData={
     "db":'',
     'password':''
 }
+program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
 def getVersionNumber(string):
     if not string: return False
     match = re.search(r"\d+(\.\d+)*", string)
@@ -162,9 +163,9 @@ def installMySQL():
 
 def checkMySQLVersion(user,password):
     version=getMYSQLVersion(user,password)
-    exit=False
+    exitFN=False
     exitCondition=version >='8.0.0' and version <='9.0.0'
-    while not exit:
+    while not exitFN:
             if exitCondition:
                 printGreen('MySQL version: '+version)
                 return version
@@ -179,7 +180,7 @@ def checkMySQLVersion(user,password):
                     installMySQL()
                     input()
                     version=getMYSQLVersion()
-                    if exitCondition: exit=True
+                    if exitCondition: exitFN=True
 
 
 
@@ -249,7 +250,7 @@ def downloadResource(url, dest):
         response = requests.get(url, stream=True, timeout=10)
         if response.status_code != 200:
             printRed(f"Error downloading: status {response.status_code}")
-            print('Press enter to exit')
+            print('Press enter to exitFN')
             sys.exit(1)
             return False
         with open(getResPath(dest), 'wb') as f:
@@ -353,8 +354,8 @@ def installPython():
     os.system(getResPath(PythonRelPath))
 
 def checkPythonVersion():
-    exit=False
-    while not exit:
+    exitFN=False
+    while not exitFN:
         pythonVersion=getVersionNumber(getPythonVersion())    
         if not pythonVersion:
             printYellow('Python installation was not detected')
@@ -382,9 +383,20 @@ def checkPythonVersion():
             else:
                 installPython()
                 return False
-            
+
+def getProgramData():
+    app_data_dir = os.path.join(program_data, "TizonaHub")
+    data_file = os.path.join(app_data_dir, "data.dat")
+    if os.path.isfile(data_file):
+        try:
+            with open(data_file, "rb") as f:
+                data = pickle.load(f)
+                return data
+
+        except Exception as e:
+            print(e)
+
 def setProgramData(installationPath):
-        program_data = os.environ.get("PROGRAMDATA", r"C:\ProgramData")
 
         app_data_dir = os.path.join(program_data, "TizonaHub")
         os.makedirs(app_data_dir, exist_ok=True)
@@ -392,11 +404,11 @@ def setProgramData(installationPath):
         data_file = os.path.join(app_data_dir, "data.dat")
 
         data = {
-            "installerVersion": {installerVersion},
-            "clientVersion":    {clientVersion},
-            "serverVersion":    {serverVersion},
-            "managerVersion":   {managerVersion},
-            "installationPath": {installationPath}
+            "installerVersion": installerVersion,
+            "clientVersion":    clientVersion,
+            "serverVersion":    serverVersion,
+            "managerVersion":   managerVersion,
+            "installationPath": installationPath
             }
         with open(data_file, "wb") as f:
             pickle.dump(data, f)
@@ -405,3 +417,22 @@ def setProgramData(installationPath):
             info = pickle.load(f)
 
         print("Version:", info["version"])'''
+def restoreUpdate():
+    
+        data=getProgramData()
+        installationPath=data['installationPath']
+        serverDir=os.path.join(installationPath,'TizonaServer')
+        oldServerDir=os.path.join(installationPath,'../TizonaServer_old')
+        if os.path.isdir(serverDir):shutil.rmtree(serverDir)
+        if os.path.isdir(oldServerDir):shutil.move(oldServerDir,serverDir)
+        
+#def getEnv():
+#        env={}
+#        with open(envFile, "r", encoding="utf-8") as f:
+#            for line in f:
+#                line = line.strip()
+#                if not line or line.startswith("#"):
+#                    continue
+#                key, value = line.split("=", 1)
+#                env[key] = value.strip().strip('"')
+#        return env

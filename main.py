@@ -9,6 +9,9 @@ import shutil
 from time import sleep
 from config import *
 from requirements import *
+import tempfile
+from pathlib import Path
+
 useFullNodePath=False
 fullNodePath='C:/Program Files/nodejs/node.exe'
 isUpdating=True if '--update' in sys.argv else False
@@ -17,15 +20,18 @@ if not platform.system() == "Windows":
     exit(1)
 def main():
     global useFullNodePath
+    global isUpdating
+    data=getProgramData()
+    envFileContent=None
     updateEnv=False
     def prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated):
-        exit=False
-        while not exit: #Asks MySQL admin user
+        exitFN=False
+        while not exitFN: #Asks MySQL admin user
             print('TizonaServer needs a user and a password to connect to the database')
             print('Create a new user?')
             print('[y] --> yes')
             print('[n] --> no')
-            exit=False
+            exitFN=False
             if input().strip().lower()=='y':#User creation
                 newUsername,newPassword,userCreated = userCreation(newUsername,newPassword,userCreated)
             else: 
@@ -33,8 +39,8 @@ def main():
                 'in TizonaServer\'s .env file, make sure that this user has privileges on the database')
                 
             #DB creation and set user privileges
-            exit=False
-            while not dbCreated and not exit:
+            exitFN=False
+            while not dbCreated and not exitFN:
                 dbInput=input('Type database name (at least three characters): ')
                 if len(dbInput)>2: dbName=dbInput
                 dbCreated=createDB(dbName)
@@ -42,12 +48,47 @@ def main():
                     printRed(f"Could not create database with name {dbName}")
                     print('[s] --> skip database creation')
                     print('Press Enter to try again')
-                    if input().strip().lower()=='s': exit=True
+                    if input().strip().lower()=='s': exitFN=True
                 else:
                     setDbTables(dbName)
                     grantPrivileges(newUsername,dbName,newPassword)
-                    exit=True
+                    exitFN=True
         return (dbCreated,dbName,newUsername,newPassword,userCreated)
+
+    def moveFiles():
+        global isUpdating
+        data=getProgramData()
+        if not data: isUpdating=False
+        else:
+            installationPath=data['installationPath']
+            oldEnvFile=os.path.join(installationPath,'../Tizonaserver_old/.env')
+            oldPluginsDir=os.path.join(installationPath,'../TizonaServer_old/plugins')
+            env={}
+            with open(oldEnvFile, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    key, value = line.split("=", 1)
+                    env[key] = value.strip().strip('"')
+            oldStatic=os.path.join(installationPath,'../TizonaServer_old/'+env['STATIC']).replace("'","")
+            static=os.path.join(installationPath,'TizonaServer/'+env['STATIC']).replace("'","")
+            envFile=os.path.join(installationPath,'Tizonaserver/.env')
+            pluginsDir=os.path.join(installationPath,'TizonaServer/plugins')
+            shutil.rmtree(static)
+            shutil.move(oldEnvFile,envFile)
+            if os.path.isdir(oldPluginsDir): shutil.move(oldPluginsDir,pluginsDir)
+            shutil.move(oldStatic,static)
+            shutil.rmtree(oldServerDir)
+            temp_path = Path(tempfile.gettempdir())
+            dest = temp_path / "installerLatest.exe"
+
+            subprocess.Popen(
+                ["cmd.exe", "/c", "del", "/f", "/q", str(dest)],
+                creationflags=subprocess.CREATE_NEW_CONSOLE
+            )
+            
+
 
     def userCreation(newUsername,newPassword,userCreated):
         confirmPassword='a'
@@ -162,7 +203,7 @@ def main():
     #MYSQL CHECK
     mysql=setServiceStartup()
     dbCreated=False
-    exit=False
+    exitFN=False
     username=''
     password=''
     adminLogged=False
@@ -183,95 +224,115 @@ def main():
             mysql=setServiceStartup()
     if mysql: 
         printGreen('MySQL service was detected ')
-        print('Do you want to skip MySQL version check?')
-        print('[n] --> no')
-        print('[Enter] --> yes')
-        if input().strip().lower()=='': exit=True
-        
-        
-        while not adminLogged and not exit: #Asks MySQL admin user
-            print('Type MySQL admin username')
-            username=input()
-            password=getpass('Type password')
-            adminLogged=checkMYSQLAdmin(username,password)
-            if not adminLogged:  #Admin not verified
-                printRed('Could not check admin user')
-                print('Do you want to skip MySQL version check?')
-                print('[y] --> yes')
-                print('[n] --> no')
-                if input().strip().lower()=='y':
-                    exit=True
-        if adminLogged:
-            checkMySQLVersion(username,password)
-            printGreen('Admin user verified successfully')
-            print('Do you want to create and prepare a new database?')
-            print('[y] --> yes')
+        if not isUpdating:    
+            print('Do you want to skip MySQL version check?')
             print('[n] --> no')
-            inputVal=input()
-            dbCreated=False
-            userCreated=False
-            if inputVal.lower().strip()=='y': #Install & prepare db
-                dbCreated,dbName,newUsername,newPassword,userCreated = prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated)
-                
-        if not dbCreated:
-            print()
-            printYellow('You refused to create a new database')
+            print('[Enter] --> yes')
+            if input().strip().lower()=='': exitFN=True
+            while not adminLogged and not exitFN: #Asks MySQL admin user
+                print('Type MySQL admin username')
+                username=input()
+                password=getpass('Type password')
+                adminLogged=checkMYSQLAdmin(username,password)
+                if not adminLogged:  #Admin not verified
+                    printRed('Could not check admin user')
+                    print('Do you want to skip MySQL version check?')
+                    print('[y] --> yes')
+                    print('[n] --> no')
+                    if input().strip().lower()=='y':
+                        exitFN=True
+            if adminLogged:
+                checkMySQLVersion(username,password)
+                printGreen('Admin user verified successfully')
+                if not isUpdating:
+                    print('Do you want to create and prepare a new database?')
+                    print('[y] --> yes')
+                    print('[n] --> no')
+                    inputVal=input()
+                    dbCreated=False
+                    userCreated=False
+                    if inputVal.lower().strip()=='y': #Install & prepare db
+                        dbCreated,dbName,newUsername,newPassword,userCreated = prepareDb(dbCreated,dbName,newUsername,newPassword,userCreated)
+
+            if not dbCreated:
+                print()
+                printYellow('You refused to create a new database')
     print()
     installationPath=r'C:\Program Files (x86)'
     #if not isUpdating:        
-    exit=False
-    print('Select installation folder')
-    while not exit:
-        print(r'Default: C:\Program Files (x86)\TizonaHub')
-        print('[Enter] --> use default installation path')
-        print('Or enter a custom path')
-        inputVal=input()
-        if len(inputVal.strip())==0: inputVal=installationPath
-        if os.path.isdir(inputVal): 
-            if os.path.isdir(os.path.abspath(inputVal+'/TizonaHub')):
-                exit=False
-                printYellow('TizonaHub folder already exists on this path.')
-                print('[u] --> just update .env file data')
-                print('[n] --> select path again')
-                print('[Enter] --> delete folder and install TizonaHub')
-                val=input()
-                if val.lower().strip()=='u':
-                    updateEnv=True
-                    exit=True
-                elif val.lower().strip=='n':
-                    exit=False
-                elif len(val)==0:
-                    updateEnv=False
-                    exit=True
-            else:
-                installationPath=inputVal
-                exit=True
-        else: printRed('Could not resolve path, select another one')
-    print()   
-    #print('>> CREATING .env FILE <<')
-    print('Summary: ')
-    print(f'  *Database name: {dbName if dbCreated else 'Missing'}')
-    print(f'  *Username: {newUsername if userCreated else 'Missing'}')
-    print(rf'  *Installation path: {installationPath}\TizonaHub')
-    print()
-    if not dbCreated: dbName=input('Type database name:  ')
-    if not newUsername: newUsername=input('Type database username:  ')
-    if not newPassword: newPassword=getpass('Type database password: ')
-    target = os.path.abspath(installationPath+r'\TizonaHub\TizonaServer')  
-    targetRoot=os.path.abspath(installationPath+r'\TizonaHub')  
-    createShortcut(targetRoot)
-    createHomeLink(targetRoot)
+    exitFN=False
+    if isUpdating:
+        #moveFiles()   
+        installationPath=data['installationPath']
+        serverDir=os.path.join(installationPath,'TizonaServer')
+        oldServerDir=os.path.join(installationPath,'../TizonaServer_old')
+        envFileContent=os.path.join(installationPath,'Tizonaserver/.env')
+        if os.path.isdir(oldServerDir):shutil.rmtree(oldServerDir)
+        if os.path.isdir(serverDir):shutil.move(serverDir,oldServerDir)
+    if not isUpdating:    
+        print('Select installation folder')
+        while not exitFN:
+            print(r'Default: C:\Program Files (x86)\TizonaHub')
+            print('[Enter] --> use default installation path')
+            print('Or enter a custom path')
+            inputVal=input()
+            if len(inputVal.strip())==0: inputVal=installationPath
+            if os.path.isdir(inputVal): 
+                if os.path.isdir(os.path.abspath(inputVal+'/TizonaHub')):
+                    exitFN=False
+                    printYellow('TizonaHub folder already exists on this path.')
+                    print('[u] --> just update .env file data')
+                    print('[n] --> select path again')
+                    print('[Enter] --> delete folder and install TizonaHub')
+                    val=input()
+                    if val.lower().strip()=='u':
+                        updateEnv=True
+                        exitFN=True
+                    elif val.lower().strip=='n':
+                        exitFN=False
+                    elif len(val)==0:
+                        updateEnv=False
+                        exitFN=True
+                else:
+                    installationPath=inputVal
+                    exitFN=True
+            else: printRed('Could not resolve path, select another one')
+        print()   
+        #print('>> CREATING .env FILE <<')
+        print('Summary: ')
+        print(f'  *Database name: {dbName if dbCreated else 'Missing'}')
+        print(f'  *Username: {newUsername if userCreated else 'Missing'}')
+        print(rf'  *Installation path: {installationPath}\TizonaHub')
+        print()
+        if not dbCreated: dbName=input('Type database name:  ')
+        if not newUsername: newUsername=input('Type database username:  ')
+        if not newPassword: newPassword=getpass('Type database password: ')
+        target = os.path.abspath(installationPath+r'\TizonaHub\TizonaServer')  
+        targetRoot=os.path.abspath(installationPath+r'\TizonaHub')  
+        createShortcut(targetRoot)
+        createHomeLink(targetRoot)
     if updateEnv:
         createEnv(target,newUsername,newPassword,dbName)
         printGreen('.env file updated')
         print('Press Enter to exit')
     else:
+        if isUpdating and envFileContent: 
+            targetRoot=data['installationPath']
+            target=os.path.join(targetRoot,'TizonaServer')
+        elif isUpdating and not envFileContent: 
+            installationPath=data['installationPath']
+            serverDir=os.path.join(installationPath,'TizonaServer')
+            oldServerDir=os.path.join(installationPath,'TizonaServer_old')
+            envFileContent=os.path.join(installationPath,'Tizonaserver/.env')
+            if os.path.isdir(serverDir):shutil.rmtree(serverDir)
+            if os.path.isdir(oldServerDir):shutil.move(oldServerDir,serverDir)
+            printRed(".env file was not found, aborting update")
+            raise Exception(".env file was not found, aborting update")
         try:
             if os.path.isdir(targetRoot):shutil.rmtree(targetRoot)
         except Exception as e:
             if not isExe():
               print(e)
-
             printRed('Unable to remove the TizonaHub folder. Please make sure that no TizonaHub process is running and try again.' \
             'If the problem persists, restart your computer or manually delete:') 
             input('Press Enter to exit...')
@@ -280,8 +341,9 @@ def main():
             with zipfile.ZipFile(getResPath(bundleName), 'r') as zip_ref:
                 zip_ref.extractall(targetRoot)
                 print('bundle zip extracted')
-            createEnv(target,newUsername,newPassword,dbName)
-            print('.env created')
+            if not isUpdating:    
+                createEnv(target,newUsername,newPassword,dbName)
+                print('.env created')
             print('Installing server dependencies...')
             npm_cmd = "C:/Program Files/nodejs/npm.cmd"
             npmCommand='npm.cmd' if not useFullNodePath else npm_cmd
@@ -289,7 +351,7 @@ def main():
             subprocess.run([npmCommand,'i','--omit=dev'],cwd=target,timeout=400)
             shutil.copy(getResPath('TizonaManager.exe'),getResPath(os.path.abspath(targetRoot+r'\TizonaManager.exe')))
             setProgramData(targetRoot)
-
+            if isUpdating: moveFiles()
             ##DEALING WITH LICENSES
             try:
                 #if os.path.isfile(targetRoot+r'\README.txt'): os.remove(targetRoot+r'\README.txt')
@@ -307,19 +369,20 @@ def main():
               if not isExe():printRed(f'An exception occurred at DEALING WITH LICENSES: {e}')
             ##
             printGreen('TizonaHub installed successfully')
-            input('Press Enter to exit...')
+            input('press enter to exit...')
 
             
         except subprocess.TimeoutExpired as e:
             printRed('The process took too long and was terminated.')
             printRed(f'Command: {" ".join(e.cmd)}')
             printRed('Could not install TizonaHub')
-            printRed('Press Ctrl + C to exit...')
+            printRed('Press Ctrl + C to exitFN...')
             return
         except Exception as e:
+            restoreUpdate()
             printRed(e)
             printRed('Could not install TizonaHub')
-            printRed('Press Enter to exit...')
+            printRed('press enter to exit...')
             input()
             return
 
@@ -335,7 +398,7 @@ def initApp():
     except:
         if debug :traceback.print_exc()
         try:            
-            input("\nPress enter to exit...")
+            input("\npress enter to exit...")
         except:
             None
 
