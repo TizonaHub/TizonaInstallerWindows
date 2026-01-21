@@ -1,2 +1,2 @@
-bundleName='TizonaHubBundle_29-08-25.zip'
+bundleName='TizonaHubBundle_17-01-26.zip'
 debug=False
