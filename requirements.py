@@ -18,7 +18,7 @@ PythonDownloadUrl='https://www.python.org/ftp/python/3.13.3/python-3.13.3-amd64.
 PythonRelPath='python-3.13.3-amd64.exe'
 
 #VERSIONS
-installerVersion='0.4.0'
-clientVersion='0.4.0'
-serverVersion='0.4.0'
-managerVersion='0.4.0'
+installerVersion='0.5.0'
+clientVersion='0.5.0'
+serverVersion='0.5.0'
+managerVersion='0.5.0'
